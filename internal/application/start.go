@@ -22,9 +22,8 @@ func (c *Conversion) Start(opts flag_parse.Opts, fs afero.Fs, logger *slog.Logge
 		opts.Symmetry = 1
 	}
 
-	colorRnd := rand.New(rand.NewSource(time.Now().Unix()))
 	baseSeed := int64(opts.Seed)
-
+	boundsRnd := rand.New(rand.NewSource(baseSeed))
 	if opts.Randomize || len(opts.AffineParams) == 0 || len(opts.Functions) == 0 {
 		RandomizeAffineParamsWithOptions(&opts, rand.New(rand.NewSource(time.Now().UnixNano())), RandomizeOptions{
 			Count:    2,
@@ -34,9 +33,9 @@ func (c *Conversion) Start(opts flag_parse.Opts, fs afero.Fs, logger *slog.Logge
 
 	for i, a := range opts.AffineParams {
 		if a.ColorR == 0 && a.ColorG == 0 && a.ColorB == 0 {
-			a.ColorR = colorRnd.Float64()
-			a.ColorG = colorRnd.Float64()
-			a.ColorB = colorRnd.Float64()
+			a.ColorR = boundsRnd.Float64()
+			a.ColorG = boundsRnd.Float64()
+			a.ColorB = boundsRnd.Float64()
 		}
 
 		affRepo.AddAffine(a)
@@ -50,7 +49,7 @@ func (c *Conversion) Start(opts flag_parse.Opts, fs afero.Fs, logger *slog.Logge
 	}
 
 	boundsAcc := infrastructure.NewBoundsAccumulator()
-	boundsRnd := rand.New(rand.NewSource(baseSeed))
+
 	boundsConv := NewConversion(affRepo, trRepo, boundsRnd, boundsAcc)
 	boundsConv.logger = logger
 	boundsConv.worker = "bounds"
