@@ -2,9 +2,10 @@ package flag_parse
 
 import (
 	"flag"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestParseFlags(t *testing.T) {

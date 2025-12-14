@@ -1,12 +1,13 @@
 package flag_parse
 
 import (
+	"strconv"
+	"testing"
+
 	_ "github.com/stretchr/testify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/infrastructure/test_helpers"
-	"strconv"
-	"testing"
 )
 
 func TestMyInt16_Set(t *testing.T) {

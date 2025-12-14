@@ -1,11 +1,14 @@
-package flag_parse // MyInt16 - type clone int16, to implement interface Value
+package flag_parse
+
 import (
 	"fmt"
-	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/domain"
 	"strconv"
 	"strings"
+
+	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/domain"
 )
 
+// MyInt16 - type clone int16, to implement interface Value
 type MyInt16 int16
 
 func (i *MyInt16) String() string {
