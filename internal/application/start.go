@@ -164,6 +164,5 @@ func iterateWithThreads(
 	for _, s := range sinks {
 		sink.MergeFrom(s)
 	}
-
 	return nil
 }
