@@ -14,7 +14,7 @@ import (
 type Opts struct {
 	AffineParams   AffineParams
 	Functions      FuncsParams
-	Seed           int
+	Seed           int64
 	IterationCount int
 	OutputPath     string
 	Threads        int
@@ -40,7 +40,7 @@ func parseFlags(fs *flag.FlagSet, args []string) (*Opts, error) {
 	fs.Var(&opts.Height, "height", "height of image")
 	fs.Var(&opts.Height, "h", "height of image")
 
-	fs.IntVar(&opts.Seed, "seed", 5, "seed of image")
+	fs.Int64Var(&opts.Seed, "seed", 5, "seed of image")
 
 	fs.IntVar(&opts.IterationCount, "iteration-count", 2500, "iteration for generation")
 	fs.IntVar(&opts.IterationCount, "i", 2500, "iteration for generation")
@@ -198,9 +198,7 @@ func applyConfig(opts *Opts, cfg *jsonConfig, wasSet func(...string) bool) error
 	}
 	if cfg.Seed != "" && !wasSet("seed") {
 		if i, err := cfg.Seed.Int64(); err == nil {
-			opts.Seed = int(i)
-		} else if f, err := cfg.Seed.Float64(); err == nil {
-			opts.Seed = int(f)
+			opts.Seed = i
 		} else {
 			return fmt.Errorf("invalid seed in config: %w", err)
 		}

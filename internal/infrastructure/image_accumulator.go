@@ -99,6 +99,10 @@ type ImageAccumulator struct {
 	symAngles       []cosSin
 }
 
+func (acc *ImageAccumulator) Bounds() (minX float64, maxX float64, minY float64, maxY float64, ok bool) {
+	panic("implement me")
+}
+
 type cosSin struct {
 	c float64
 	s float64

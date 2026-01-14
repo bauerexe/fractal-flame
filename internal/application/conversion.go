@@ -2,6 +2,7 @@ package application
 
 import (
 	"log/slog"
+	"math/rand"
 
 	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/domain"
 	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/ports"
@@ -10,18 +11,20 @@ import (
 type Conversion struct {
 	affRepo ports.AffineRepository
 	trRepo  ports.TransformRepository
-	rnd     ports.RandomSource
+	rnd     *rand.Rand
 	sink    ports.SampleSink
 	logger  *slog.Logger
 	worker  string
+	seed    int64
 }
 
-func NewConversion(aff ports.AffineRepository, tr ports.TransformRepository, rnd ports.RandomSource, sink ports.SampleSink) *Conversion {
+func NewConversion(aff ports.AffineRepository, tr ports.TransformRepository, rnd *rand.Rand, sink ports.SampleSink, seed int64) *Conversion {
 	return &Conversion{
 		affRepo: aff,
 		trRepo:  tr,
 		rnd:     rnd,
 		sink:    sink,
+		seed:    seed,
 	}
 }
 

@@ -2,12 +2,11 @@ package application
 
 import (
 	"fmt"
+	"github.com/spf13/afero"
 	"log/slog"
 	"math/rand"
 	"sync"
 	"time"
-
-	"github.com/spf13/afero"
 
 	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/domain"
 	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/infrastructure"
@@ -16,14 +15,10 @@ import (
 )
 
 func (c *Conversion) Start(opts flag_parse.Opts, fs afero.Fs, logger *slog.Logger) error {
-	affRepo := infrastructure.NewAffineRepository()
-
 	if opts.Symmetry < 1 {
 		opts.Symmetry = 1
 	}
 
-	baseSeed := int64(opts.Seed)
-	boundsRnd := rand.New(rand.NewSource(baseSeed))
 	if opts.Randomize || len(opts.AffineParams) == 0 || len(opts.Functions) == 0 {
 		RandomizeAffineParamsWithOptions(&opts, rand.New(rand.NewSource(time.Now().UnixNano())), RandomizeOptions{
 			Count:    2,
@@ -33,32 +28,35 @@ func (c *Conversion) Start(opts flag_parse.Opts, fs afero.Fs, logger *slog.Logge
 
 	for i, a := range opts.AffineParams {
 		if a.ColorR == 0 && a.ColorG == 0 && a.ColorB == 0 {
-			a.ColorR = boundsRnd.Float64()
-			a.ColorG = boundsRnd.Float64()
-			a.ColorB = boundsRnd.Float64()
+			a.ColorR = c.rnd.Float64()
+			a.ColorG = c.rnd.Float64()
+			a.ColorB = c.rnd.Float64()
 		}
 
-		affRepo.AddAffine(a)
+		c.affRepo.AddAffine(a)
 		opts.AffineParams[i] = a
 	}
 
-	trRepo := infrastructure.NewTransformRepository()
 	for _, fnCfg := range opts.Functions {
 		v := VariationByName(fnCfg.Name)
-		trRepo.AddTransform(domain.FuncTransform{Variation: v, Weight: fnCfg.Weight})
+		c.trRepo.AddTransform(domain.FuncTransform{Variation: v, Weight: fnCfg.Weight})
 	}
 
-	boundsAcc := infrastructure.NewBoundsAccumulator()
+	c.logger = logger
+	c.worker = "bounds"
 
-	boundsConv := NewConversion(affRepo, trRepo, boundsRnd, boundsAcc)
-	boundsConv.logger = logger
-	boundsConv.worker = "bounds"
-
-	if err := boundsConv.Iterate(domain.Point{}, opts.IterationCount); err != nil {
+	boundsIters := opts.IterationCount / 20
+	if boundsIters < 10_000 {
+		boundsIters = 10_000
+	}
+	if boundsIters > opts.IterationCount {
+		boundsIters = opts.IterationCount
+	}
+	if err := iterateWithThreads(c.affRepo, c.trRepo, c.sink, c.seed, opts.Threads, boundsIters, logger); err != nil {
 		return err
 	}
 
-	minX, maxX, minY, maxY, ok := boundsAcc.Bounds()
+	minX, maxX, minY, maxY, ok := c.sink.Bounds()
 	if !ok {
 		return fmt.Errorf("fractal produced no points")
 	}
@@ -84,7 +82,7 @@ func (c *Conversion) Start(opts flag_parse.Opts, fs afero.Fs, logger *slog.Logge
 		logger.Info("rendering image", "width", opts.Width, "height", opts.Height, "iterations", opts.IterationCount, "threads", opts.Threads)
 	}
 
-	if err := iterateWithThreads(affRepo, trRepo, imageAcc, baseSeed+1, opts.Threads, opts.IterationCount, logger); err != nil {
+	if err := iterateWithThreads(c.affRepo, c.trRepo, imageAcc, c.seed+1, opts.Threads, opts.IterationCount, logger); err != nil {
 		return err
 	}
 
@@ -106,7 +104,7 @@ func iterateWithThreads(
 ) error {
 	if threads <= 1 {
 		rnd := rand.New(rand.NewSource(seed))
-		conv := NewConversion(affRepo, trRepo, rnd, sink)
+		conv := NewConversion(affRepo, trRepo, rnd, sink, seed)
 		conv.worker = "single"
 		if logger != nil {
 			conv.logger = logger.With("worker", conv.worker)
@@ -138,7 +136,7 @@ func iterateWithThreads(
 
 		sinks[idx] = sink.CloneEmpty()
 		rnd := rand.New(rand.NewSource(seed + int64(idx+1)))
-		conv := NewConversion(affRepo, trRepo, rnd, sinks[idx])
+		conv := NewConversion(affRepo, trRepo, rnd, sinks[idx], seed)
 		if logger != nil {
 			conv.logger = logger.With("worker", idx)
 			conv.worker = fmt.Sprintf("worker-%d", idx)

@@ -3,10 +3,12 @@ package application
 import (
 	"io"
 	"log/slog"
+	"math/rand"
 	"testing"
 
 	"github.com/spf13/afero"
 
+	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/infrastructure"
 	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/infrastructure/flag_parse"
 )
 
@@ -24,6 +26,7 @@ func TestConversionStart(t *testing.T) {
 				Height:         flag_parse.MyInt16(64),
 				IterationCount: 200,
 				OutputPath:     "out_random.png",
+				Seed:           1,
 			},
 		},
 		{
@@ -33,6 +36,7 @@ func TestConversionStart(t *testing.T) {
 				Height:         flag_parse.MyInt16(32),
 				IterationCount: 150,
 				OutputPath:     "out_provided.png",
+				Seed:           1,
 				AffineParams: flag_parse.AffineParams{
 					{A: 1, B: 0, C: 0, D: 0, E: 1, F: 0, ColorR: 0.1, ColorG: 0.2, ColorB: 0.3},
 				},
@@ -48,7 +52,14 @@ func TestConversionStart(t *testing.T) {
 			t.Parallel()
 
 			fs := afero.NewMemMapFs()
-			conv := &Conversion{}
+
+			affRepo := infrastructure.NewAffineRepository()
+			trRepo := infrastructure.NewTransformRepository()
+			boundsAcc := infrastructure.NewBoundsAccumulator()
+			boundsRnd := rand.New(rand.NewSource(tt.opts.Seed))
+
+			conv := NewConversion(affRepo, trRepo, boundsRnd, boundsAcc, tt.opts.Seed)
+
 			logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelWarn}))
 
 			if err := conv.Start(tt.opts, fs, logger); err != nil {

@@ -4,7 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"gitlab.education.tbank.ru/backend-academy-go-2025/homeworks/hw4-fractal-flame/internal/infrastructure"
 	"log/slog"
+	"math/rand"
 	"os"
 
 	"github.com/spf13/afero"
@@ -22,6 +24,7 @@ const help = `fractalflame \
 `
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
 	usage := func(full bool) {
 		_, _ = fmt.Fprintln(os.Stdout, "Usage: fractalflame [flags]")
 		if full {
@@ -37,14 +40,18 @@ func main() {
 		return
 	}
 	if err != nil {
-		slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})).
-			Error("failed to parse flags", "err", err)
+		logger.Error("failed to parse flags", "err", err)
 		usage(false)
 		os.Exit(2)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	if err := (&application.Conversion{}).Start(*opts, afero.NewOsFs(), logger); err != nil {
+	boundsRnd := rand.New(rand.NewSource(opts.Seed))
+	affRepo := infrastructure.NewAffineRepository()
+	trRepo := infrastructure.NewTransformRepository()
+	boundsAcc := infrastructure.NewBoundsAccumulator()
+
+	cv := application.NewConversion(affRepo, trRepo, boundsRnd, boundsAcc, opts.Seed)
+	if err := cv.Start(*opts, afero.NewOsFs(), logger); err != nil {
 		logger.Error("failed to generate fractal", "err", err)
 		os.Exit(1)
 	}

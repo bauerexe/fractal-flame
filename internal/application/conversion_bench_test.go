@@ -12,6 +12,10 @@ import (
 
 type benchSink struct{ hits int }
 
+func (s *benchSink) Bounds() (minX float64, maxX float64, minY float64, maxY float64, ok bool) {
+	panic("implement me")
+}
+
 func (s *benchSink) Hit(p domain.Point)           { s.hits++ }
 func (s *benchSink) CloneEmpty() ports.SampleSink { return &benchSink{} }
 func (s *benchSink) MergeFrom(other ports.SampleSink) {
@@ -22,17 +26,25 @@ func (s *benchSink) MergeFrom(other ports.SampleSink) {
 
 type benchAffineRepo struct{}
 
+func (r benchAffineRepo) AddAffine(affine domain.Affine) {
+	panic("implement me")
+}
+
 func (benchAffineRepo) Apply(i int, p domain.Point) (domain.Point, error) { return p, nil }
 func (benchAffineRepo) ColorAt(i int) (r, g, b float64)                   { return 0, 0, 0 }
 func (benchAffineRepo) Len() int                                          { return 1 }
 
 type benchTransformRepo struct{}
 
+func (r benchTransformRepo) AddTransform(transform domain.FuncTransform) {
+	panic("implement me")
+}
+
 func (benchTransformRepo) Apply(p domain.Point) domain.Point { return p }
 
 func BenchmarkConversionIterateSingleThread(b *testing.B) {
 	sink := &benchSink{}
-	conv := NewConversion(benchAffineRepo{}, benchTransformRepo{}, rand.New(rand.NewSource(1)), sink)
+	conv := NewConversion(benchAffineRepo{}, benchTransformRepo{}, rand.New(rand.NewSource(1)), sink, 1)
 
 	for i := 0; i < b.N; i++ {
 		_ = conv.Iterate(domain.Point{}, 1000)
